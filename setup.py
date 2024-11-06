@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'rectangle_and_circle_marker_node = standby_processing_manager.rectangle_and_circle_marker_node:main',
         ],
     },
 )
