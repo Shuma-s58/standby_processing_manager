@@ -207,8 +207,8 @@ class LocalcostAndMoveNode(Node):
     def check_collision_callback(self):
         # 矩形マーカーの位置・大きさ・回転角度
         center = (self.rectangle_marker.pose.position.x, self.rectangle_marker.pose.position.y)  # 中心位置
-        width = self.rectangle_marker.scale.y  # 幅
-        height = self.rectangle_marker.scale.x  # 高さ
+        width = self.rectangle_marker.scale.x  # 幅
+        height = self.rectangle_marker.scale.y  # 高さ
         angle = self.calculation_radian()  # 回転角度
 
         # 矩形マーカーの頂点を計算
@@ -268,8 +268,10 @@ class LocalcostAndMoveNode(Node):
 
         rotated_corners = []
         for (x, y) in corners:
-            rotated_x = center[0] + x * math.cos(angle + math.radians(90)) - y * math.sin(angle - math.radians(90))
-            rotated_y = center[1] + x * math.sin(angle - math.radians(90)) + y * math.cos(angle + math.radians(90))
+            #rotated_x = center[0] + x * math.cos(angle + math.radians(90)) - y * math.sin(angle + math.radians(90))
+            #rotated_y = center[1] + x * math.sin(angle - math.radians(90)) + y * math.cos(angle - math.radians(90))
+            rotated_x = center[0] + x * math.cos(angle) - y * math.sin(angle)
+            rotated_y = center[1] + x * math.sin(angle) + y * math.cos(angle)
             rotated_corners.append((rotated_x, rotated_y))
 
         return rotated_corners
