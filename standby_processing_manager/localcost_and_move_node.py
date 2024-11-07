@@ -229,29 +229,35 @@ class LocalcostAndMoveNode(Node):
         self.costmap_point.x = self.local_costmap.info.origin.position.x
         self.costmap_point.y = self.local_costmap.info.origin.position.y
         self.costmap_point.z = self.local_costmap.info.origin.position.z
+        self.costmap_stamp = self.local_costmap.header.stamp
         self.transform_to_map()
 
         # Costmap properties
         costmap_resolution = self.local_costmap.info.resolution
+        #costmap_origin_x = self.local_costmap.info.origin.position.x
+        #costmap_origin_y = self.local_costmap.info.origin.position.y
         costmap_origin_x = self.point_in_map.point.x # costmap to map from odom
         costmap_origin_y = self.point_in_map.point.y # costmap to map from odom
         costmap_width = self.local_costmap.info.width
         costmap_height = self.local_costmap.info.height
 
+        self.get_logger().info(f'costmap_x_y: {self.costmap_point.x, self.costmap_point.y, costmap_resolution}')
+
         for (vx, vy) in vertices:
             # グリッド座標に変換
-            #grid_x = int((vx - costmap_origin_x) / costmap_resolution)
-            #grid_y = int((vy - costmap_origin_y) / costmap_resolution)
-            grid_x = int(vx / costmap_resolution)
-            grid_y = int(vy / costmap_resolution)
+            grid_x = int((vx - costmap_origin_x) / costmap_resolution)
+            grid_y = int((vy - costmap_origin_y) / costmap_resolution)
+            #grid_x = int(vy / costmap_resolution)
+            #grid_y = int(vx / costmap_resolution)
 
             # ローカルコストマップの範囲内であるか確認
-            if 0 <= grid_x < costmap_width and 0 <= grid_y < costmap_height:
-                index = grid_y * costmap_width + grid_x
-                if self.local_costmap.data[index] != 0:  # 50以上なら重なりがあるとみなす
+            if -(costmap_width / 2) <= grid_x < (costmap_width / 2) and -(costmap_height / 2) <= grid_y < (costmap_height/ 2):
+                #index = grid_y * costmap_width + grid_x
+                index = grid_y * costmap_width + (costmap_height - grid_x)
+                if self.local_costmap.data[index] >= 50:  # 50以上なら重なりがあるとみなす
                     return True
-                else:
-                    return False
+                #else:
+                    #return False
         return False
 
     def calculate_rectangle_vertices(self, center, width, height, angle):
@@ -260,16 +266,14 @@ class LocalcostAndMoveNode(Node):
         dy = height / 2
 
         corners = [
-            #(center[0], -dy),
-            #(center[0], dy),
-            (dx, dy),
-            (dx, -dy)
+            (center[0], -dy),
+            (center[0], dy),
+            (-dx, dy),
+            (-dx, -dy)
         ]
 
         rotated_corners = []
         for (x, y) in corners:
-            #rotated_x = center[0] + x * math.cos(angle + math.radians(90)) - y * math.sin(angle + math.radians(90))
-            #rotated_y = center[1] + x * math.sin(angle - math.radians(90)) + y * math.cos(angle - math.radians(90))
             rotated_x = center[0] + x * math.cos(angle) - y * math.sin(angle)
             rotated_y = center[1] + x * math.sin(angle) + y * math.cos(angle)
             rotated_corners.append((rotated_x, rotated_y))
@@ -281,7 +285,8 @@ class LocalcostAndMoveNode(Node):
             # costmap 座標（odom 基準）の PointStamped を作成
             point_in_odom = PointStamped()
             point_in_odom.header.frame_id = "odom"
-            point_in_odom.header.stamp = self.get_clock().now().to_msg()
+            #point_in_odom.header.stamp = self.get_clock().now().to_msg()
+            point_in_odom.header.stamp = self.local_costmap.header.stamp
             point_in_odom.point.x = self.costmap_point.x
             point_in_odom.point.y = self.costmap_point.y
             point_in_odom.point.z = self.costmap_point.z
