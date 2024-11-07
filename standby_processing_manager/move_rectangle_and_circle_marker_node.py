@@ -20,12 +20,12 @@ class MoveRectangleAndCircleMarkerNode(Node):
         self.amount_of_movement_y = 0.0
 
     def timer_callback(self):
-        self.create_circle_marker()
         self.create_goal_marker()
+        self.create_circle_marker()
         self.create_rectangle_marker()
         self.amount_of_movement()
         #self.get_logger().info("markers published")
-        self.get_logger().info(f'cos: {math.cos(self.calculation_radian() + math.radians(90))}')
+        #self.get_logger().info(f'cos: {math.cos(self.calculation_radian() + math.radians(90))}')
         
     def create_rectangle_marker(self):
        # self.rectangle_marker = Marker()
@@ -37,7 +37,7 @@ class MoveRectangleAndCircleMarkerNode(Node):
        self.rectangle_marker.action = Marker.ADD            # マーカーを表示
     
        # 位置と姿勢を設定
-       self.rectangle_marker.pose.position.x = 1.0 + self.amount_of_movement_x
+       self.rectangle_marker.pose.position.x = 1.0 - math.sin(self.calculation_radian() - math.radians(90)) * (self.rectangle_marker.scale.x / 2.0) + self.amount_of_movement_x 
        self.rectangle_marker.pose.position.y = 1.0 - math.cos(self.calculation_radian() + math.radians(90)) * (self.rectangle_marker.scale.x / 2.0) + self.amount_of_movement_y
        self.rectangle_marker.pose.position.z = 0.5
 
@@ -67,7 +67,7 @@ class MoveRectangleAndCircleMarkerNode(Node):
        self.circle_marker.action = Marker.ADD            # マーカーを表示
 
        # 位置と姿勢を設定
-       self.circle_marker.pose.position.x = 1.0 - self.rectangle_marker.scale.x / 2.0 + self.amount_of_movement_x
+       self.circle_marker.pose.position.x = 1.0 + self.amount_of_movement_x
        self.circle_marker.pose.position.y = 1.0 + self.amount_of_movement_y
        self.circle_marker.pose.position.z = 0.5
        self.circle_marker.pose.orientation.x = 0.0
@@ -98,7 +98,7 @@ class MoveRectangleAndCircleMarkerNode(Node):
        self.goal_marker.action = Marker.ADD            # マーカーを表示
 
        # 位置と姿勢を設定
-       self.goal_marker.pose.position.x = 2.0
+       self.goal_marker.pose.position.x = 1.0
        self.goal_marker.pose.position.y = 2.0
        self.goal_marker.pose.position.z = 0.5
        self.goal_marker.pose.orientation.x = 0.0
