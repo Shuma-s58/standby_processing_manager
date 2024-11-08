@@ -40,18 +40,21 @@ class GoalAndMoveNode(Node):
 
         self._action_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
 
-        self.set_goal_pose()
+        self.stop_trigger = False
 
     def timer_callback(self):
         self.create_goal_marker()
         self.create_circle_marker()
         self.create_rectangle_marker()
-        self.set_goal_pose()
+        #self.set_goal_pose()
+        #self.send_goal()
         self.amount_of_movement()
         if self.local_costmap is None:
             return
         else:
             self.check_collision_callback()
+            self.set_goal_pose()
+            self.send_goal()
         #self.get_logger().info("markers published")
         #self.get_logger().info(f'cos: {math.cos(self.calculation_radian() + math.radians(90))}')
 
@@ -130,7 +133,7 @@ class GoalAndMoveNode(Node):
 
        # 位置と姿勢を設定
        self.goal_marker.pose.position.x = 3.0
-       self.goal_marker.pose.position.y = -2.0
+       self.goal_marker.pose.position.y = 1.0
        self.goal_marker.pose.position.z = 0.5
        self.goal_marker.pose.orientation.x = 0.0
        self.goal_marker.pose.orientation.y = 0.0
@@ -206,11 +209,12 @@ class GoalAndMoveNode(Node):
 
     def amount_of_movement(self):
 
-        if self.distance_between_follow_marker_and_goal() > 0.03 or not self.check_overlap_with_local_cost(self.vertices):
-            self.amount_of_movement_x += math.sin(self.calculation_radian() + math.radians(90)) * 0.1
-            self.amount_of_movement_y -= math.cos(self.calculation_radian() + math.radians(90)) * 0.1
+        if self.distance_between_follow_marker_and_goal() > 0.03 and not self.stop_trigger:
+            self.amount_of_movement_x += math.sin(self.calculation_radian() + math.radians(90)) * 0.03
+            self.amount_of_movement_y -= math.cos(self.calculation_radian() + math.radians(90)) * 0.03
 
         #else:
+            #time.sleep(3)
             #self.amount_of_movement_x = 0.0
             #self.amount_of_movement_y = 0.0
 
@@ -222,18 +226,23 @@ class GoalAndMoveNode(Node):
         angle = self.calculation_radian()  # 回転角度
 
         # 矩形マーカーの頂点を計算
-        self.vertices = self.calculate_rectangle_vertices(center, width, height, angle)
+        vertices = self.calculate_rectangle_vertices(center, width, height, angle)
 
         #self.get_logger().info(f'vertices: {self.vertices}')
 
         # 重なり判定
-        if self.check_overlap_with_local_cost(self.vertices):
+        if self.check_overlap_with_local_cost(vertices):
+            self.stop_trigger = True
             self.get_logger().info("Rectangle marker overlaps with the local cost.")
         else:
+            self.stop_trigger = False
             self.get_logger().info("No overlap with the local cost.")
 
     def check_overlap_with_local_cost(self, vertices):
         #矩形の頂点とローカルコストの重なりを判定
+
+        if self.local_costmap is None:
+            return
 
         # costmap transform
         self.costmap_point.x = self.local_costmap.info.origin.position.x
@@ -251,7 +260,7 @@ class GoalAndMoveNode(Node):
         costmap_width = self.local_costmap.info.width
         costmap_height = self.local_costmap.info.height
 
-        self.get_logger().info(f'costmap_x_y: {self.costmap_point.x, self.costmap_point.y, costmap_resolution}')
+        #self.get_logger().info(f'costmap_x_y: {self.costmap_point.x, self.costmap_point.y, costmap_resolution}')
 
         for (vx, vy) in vertices:
             # グリッド座標に変換
@@ -264,7 +273,7 @@ class GoalAndMoveNode(Node):
             if -(costmap_width / 2) <= grid_x < (costmap_width / 2) and -(costmap_height / 2) <= grid_y < (costmap_height/ 2):
                 #index = grid_y * costmap_width + grid_x
                 index = grid_y * costmap_width + (costmap_height - grid_x)
-                if self.local_costmap.data[index] >= 30:  # 50以上なら重なりがあるとみなす
+                if self.local_costmap.data[index] >= 70:  # 50以上なら重なりがあるとみなす
                     return True
                 #else:
                     #return False
@@ -320,7 +329,7 @@ class GoalAndMoveNode(Node):
 
         # 目標を送信
         self._send_goal_future = self._action_client.send_goal_async(goal_msg)
-        self._send_goal_future.add_done_callback(self.goal_response_callback)
+        #self._send_goal_future.add_done_callback(self.goal_response_callback)
 
     def goal_response_callback(self, future):
         goal_handle = future.result()
@@ -328,9 +337,9 @@ class GoalAndMoveNode(Node):
             self.get_logger().info('Goal rejected')
             return
 
-        self.get_logger().info('Goal accepted')
-        self._get_result_future = goal_handle.get_result_async()
-        self._get_result_future.add_done_callback(self.get_result_callback)
+        #self.get_logger().info('Goal accepted')
+        #self._get_result_future = goal_handle.get_result_async()
+        #self._get_result_future.add_done_callback(self.get_result_callback)
 
     def get_result_callback(self, future):
         result = future.result().status
@@ -338,8 +347,8 @@ class GoalAndMoveNode(Node):
         # 結果が成功ならば、もう一度目標を再送信する
         if result == 4:  # 4はナビゲーション成功のステータス
             self.get_logger().info('Goal reached, sending again...')
-            time.sleep(1)  # 必要に応じて少し待機
-            self.send_goal()
+            #time.sleep(1)  # 必要に応じて少し待機
+            #self.send_goal()
         else:
             self.get_logger().info(f'Goal failed with status: {result}')
             # 必要に応じて再試行や他の処理を追加
@@ -347,6 +356,7 @@ class GoalAndMoveNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = GoalAndMoveNode()
+    node.set_goal_pose()
     node.send_goal()
     rclpy.spin(node)
     node.destroy_node()
