@@ -46,20 +46,20 @@ class GoalAndMoveNode(Node):
         self.create_goal_marker()
         self.create_circle_marker()
         self.create_rectangle_marker()
-        #self.set_goal_pose()
-        #self.send_goal()
         self.amount_of_movement()
         if self.local_costmap is None:
             return
         else:
             self.check_collision_callback()
-            self.set_goal_pose()
-            self.send_goal()
+            #self.set_goal_pose()
+            #self.send_goal()
         #self.get_logger().info("markers published")
         #self.get_logger().info(f'cos: {math.cos(self.calculation_radian() + math.radians(90))}')
 
     def local_costmap_callback(self, msg):
         self.local_costmap = msg
+        if self.check_move_goal_pose():
+            self.send_goal()
         
     def create_rectangle_marker(self):
        # self.rectangle_marker = Marker()
@@ -132,8 +132,8 @@ class GoalAndMoveNode(Node):
        self.goal_marker.action = Marker.ADD            # マーカーを表示
 
        # 位置と姿勢を設定
-       self.goal_marker.pose.position.x = 3.0
-       self.goal_marker.pose.position.y = 1.0
+       self.goal_marker.pose.position.x = 1.0
+       self.goal_marker.pose.position.y = -1.0
        self.goal_marker.pose.position.z = 0.5
        self.goal_marker.pose.orientation.x = 0.0
        self.goal_marker.pose.orientation.y = 0.0
@@ -228,7 +228,7 @@ class GoalAndMoveNode(Node):
         # 矩形マーカーの頂点を計算
         vertices = self.calculate_rectangle_vertices(center, width, height, angle)
 
-        #self.get_logger().info(f'vertices: {self.vertices}')
+        self.get_logger().info(f'vertices: {vertices}')
 
         # 重なり判定
         if self.check_overlap_with_local_cost(vertices):
@@ -261,22 +261,29 @@ class GoalAndMoveNode(Node):
         costmap_height = self.local_costmap.info.height
 
         #self.get_logger().info(f'costmap_x_y: {self.costmap_point.x, self.costmap_point.y, costmap_resolution}')
+        self.get_logger().info(f'costmap_x_y: {len(self.local_costmap.data)}')
+
+        costmap_data_start_x = costmap_origin_x - (costmap_width / 2 * costmap_resolution)
+        costmap_data_start_y = costmap_origin_y + (costmap_height / 2 * costmap_resolution)
 
         for (vx, vy) in vertices:
             # グリッド座標に変換
-            grid_x = int((vx - costmap_origin_x) / costmap_resolution)
-            grid_y = int((vy - costmap_origin_y) / costmap_resolution)
+            #grid_x = int((vx - costmap_origin_x) / costmap_resolution)
+            #grid_y = int((vy - costmap_origin_y) / costmap_resolution)
             #grid_x = int(vy / costmap_resolution)
             #grid_y = int(vx / costmap_resolution)
+            grid_x = int((vx - costmap_data_start_x) / costmap_resolution)
+            grid_y = int((vy - costmap_data_start_y) / costmap_resolution)
 
             # ローカルコストマップの範囲内であるか確認
             if -(costmap_width / 2) <= grid_x < (costmap_width / 2) and -(costmap_height / 2) <= grid_y < (costmap_height/ 2):
-                #index = grid_y * costmap_width + grid_x
-                index = grid_y * costmap_width + (costmap_height - grid_x)
+                index = grid_y * costmap_width + grid_x
+                #index = grid_x * costmap_width + (costmap_height - grid_y)
+                #index = grid_y * costmap_width + (costmap_height - grid_x)
                 if self.local_costmap.data[index] >= 70:  # 50以上なら重なりがあるとみなす
                     return True
-                #else:
-                    #return False
+                else:
+                    return False
         return False
 
     def calculate_rectangle_vertices(self, center, width, height, angle):
@@ -285,10 +292,12 @@ class GoalAndMoveNode(Node):
         dy = height / 2
 
         corners = [
-            (center[0], -dy),
-            (center[0], dy),
-            (-dx, dy),
-            (-dx, -dy)
+            #(center[0], -dy),
+            #(center[0], dy),
+            #(-dx, dy),
+            #(-dx, -dy),
+            #(-dx, center[1]),
+            (0, 0)
         ]
 
         rotated_corners = []
@@ -330,6 +339,16 @@ class GoalAndMoveNode(Node):
         # 目標を送信
         self._send_goal_future = self._action_client.send_goal_async(goal_msg)
         #self._send_goal_future.add_done_callback(self.goal_response_callback)
+
+    def check_move_goal_pose(self):
+        
+        past_pose_x = self.goal_pose.pose.position.x
+        past_pose_y = self.goal_pose.pose.position.y
+        self.set_goal_pose()
+        if past_pose_x == self.goal_pose.pose.position.x and past_pose_y == self.goal_pose.pose.position.y:
+            return False
+        else:
+            return True
 
     def goal_response_callback(self, future):
         goal_handle = future.result()
