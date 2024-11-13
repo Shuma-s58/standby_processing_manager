@@ -24,6 +24,7 @@ setup(
             'move_rectangle_and_circle_marker_node = standby_processing_manager.move_rectangle_and_circle_marker_node:main',
             'localcost_and_move_node = standby_processing_manager.localcost_and_move_node:main',
             'goal_and_move_node = standby_processing_manager.goal_and_move_node:main',
+            'robot_and_goal_move_node = standby_processing_manager.robot_and_goal_move_node:main',
         ],
     },
 )
