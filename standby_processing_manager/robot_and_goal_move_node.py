@@ -235,7 +235,7 @@ class RobotAndGoalMoveNode(Node):
     def amount_of_movement(self):
 
         #if self.distance_between_follow_marker_and_goal() > 0.03 and not self.stop_trigger:
-        if self.distance_between_follow_marker_and_goal() > 0.03 and self.distance_between_follow_marker_and_robot() < 0.1:
+        if self.distance_between_follow_marker_and_goal() > 0.03 and self.distance_between_follow_marker_and_robot() < 0.55:
             self.amount_of_movement_x += math.sin(self.calculation_radian() + math.radians(90)) * 0.03
             self.amount_of_movement_y -= math.cos(self.calculation_radian() + math.radians(90)) * 0.03
 
